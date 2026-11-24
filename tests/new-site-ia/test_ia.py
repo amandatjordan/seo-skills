@@ -13,7 +13,7 @@ from pathlib import Path
 
 import openpyxl
 
-SKILL = Path(__file__).resolve().parents[2] / 'plugins/mavan-seo/skills/new-site-ia'
+SKILL = Path(__file__).resolve().parents[2] / 'plugins/seo/skills/new-site-ia'
 SCRIPT = SKILL / 'scripts/ia.py'
 _spec = importlib.util.spec_from_file_location('ia', SCRIPT)
 ia = importlib.util.module_from_spec(_spec)

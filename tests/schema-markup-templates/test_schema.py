@@ -14,7 +14,7 @@ from pathlib import Path
 
 import openpyxl
 
-SKILL = Path(__file__).resolve().parents[2] / 'plugins/mavan-seo/skills/schema-markup-templates'
+SKILL = Path(__file__).resolve().parents[2] / 'plugins/seo/skills/schema-markup-templates'
 SCRIPT = SKILL / 'scripts/schema.py'
 _spec = importlib.util.spec_from_file_location('schema', SCRIPT)
 schema = importlib.util.module_from_spec(_spec)

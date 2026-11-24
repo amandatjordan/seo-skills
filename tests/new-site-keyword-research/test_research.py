@@ -12,7 +12,7 @@ from pathlib import Path
 import pandas as pd
 from openpyxl import Workbook
 
-SKILL = Path(__file__).resolve().parents[2] / 'plugins/mavan-seo/skills/new-site-keyword-research'
+SKILL = Path(__file__).resolve().parents[2] / 'plugins/seo/skills/new-site-keyword-research'
 SCRIPT = SKILL / 'scripts/research.py'
 REAL_TAXONOMY = SKILL / 'references/service-taxonomy.xlsx'
 

@@ -1,0 +1,68 @@
+---
+name: prospect-sales-report
+description: Build the client-facing prospect report sales goes over with a potential client - Site Health Score summary, one verdict (site architecture, content or authority & trust), each health metric with its findings, and the 3-month roadmap for that track and the chosen tier - as one shareable web page, from a prospect diagnosis. Use for prospect reports, sales reports, pitch decks for a prospect, or "make the report for the sales call".
+---
+
+# Prospect Sales Report
+
+One page sales screen-shares or sends after the call. In this order:
+
+1. **Site Health Score**: overall and per metric (Site Architecture, Content, Authority & Trust, Google Maps).
+2. **Verdict**: **one** underlying issue.
+3. **What we found**: each metric with its score and 2-3 plain-language findings.
+4. **Recommended roadmap**: onboarding plus months 1-3 of the verdict's track only, for the prospect's tier.
+
+It reads `diagnosis.json` from the `prospect-diagnosis` skill, the bundled client tracks and task labels, and optional Google Business Profile data. **Never visit the live site.** Every number comes from `diagnosis.json`; the script writes all the wording and picks the verdict, so never write or reword findings or change the verdict by hand. Use no tool, dependency or extra step beyond those named here without asking the person and explaining why.
+
+`$SKILL` below is this skill's folder (the base directory shown when the skill loads). Python 3 with openpyxl (to read the diagnosis spreadsheet).
+
+## What you need
+
+Step 1 checks all of this. Ask for what is missing in **one** message.
+
+| Input | Required? | Notes |
+| --- | --- | --- |
+| Prospect diagnosis spreadsheet | Required | The `.xlsx` from `prospect-diagnosis` for this prospect. Its `diagnosis.json` must sit next to it (the diagnosis writes both); pass `--diagnosis` if it was moved. The preflight checks the two are for the same prospect and the same run. If there is no diagnosis yet, run that skill first |
+| Proposed plan level | Required | Starter, VIP or Signature: the plan sales is proposing. Ask with one multiple-choice question if the person has not said. Tasks not in that plan are dropped; hours are never shown |
+| Google Business Profile data | Optional | Read from `diagnosis.json` when the diagnosis was run with the GBP sheet: Google Maps gets its own card with four plain-language findings (rating, number of reviews, local ranking on the priority searches, missing categories) and a score (the share of those four checks with no issue), and is added to the overall score. Without it the report still builds: Google Maps shows as "Checked separately" and is left out of the overall score. A `--gbp` JSON file `{"score": 0-100, "findings": [{"text": "...", "issue": true}]}` overrides it. The Maps track is never picked automatically |
+
+## Existing clients
+
+The same report works for a client diagnosis from the `client-diagnosis` skill. The script reads `report_type: client` from `diagnosis.json` and then drops the onboarding column (the roadmap is months 1-3 of the verdict's track), words the footer for Search Console clicks and impressions, and shows the Search Console findings. Pass the client's **current** plan level as `--tier`. The title stays "Site Health Report". Findings that need impressions only appear when the diagnosis could score them.
+
+## Rules the script applies
+
+- **Health score** per metric = 100 minus that lens's issue score from the diagnosis (a lens with 4 of 7 issue points scores 43). Overall = the average of the scored metrics. Good 75+, Needs work 50-74, Poor under 50.
+- **Verdict**: the first lens scoring **High** in priority order **Site Architecture, then Content, then Authority & Trust**. When none is High, the highest-scoring lens (priority order breaks ties). When no lens scored any issue, the script stops: ask the person which track to show and pass `--verdict`. Use `--verdict` only when the person asks, and say why in the reply; `--verdict maps` is how sales picks the Google Maps track after the manual GBP check.
+- **Why we start here**: when another metric scored lower than the verdict, the verdict card explains why the verdict still comes first (wording per track in `PRIORITY_WHY` in the script). The Maps wording mentions that trust signals are not a major issue only when Authority & Trust scored Low or Medium.
+- **Roadmap**: the track for the verdict (Site Architecture, Poor Content, or Authority & Trust) from `references/tracks.csv`. Onboarding first, then months 1-3. Monthly AM/PM, reporting, GBP posts, GMB audit, Text/GHL and front desk go in one "Every month" band. "DO FIRST" shows as "Start here"; "BLOCKED BY" shows as "After: <task>". Task names show as the client labels in `references/task_labels.json`.
+- **Copy**: written for a business owner, no signal codes, tool jargon or keyword volumes, no promised results.
+
+## Step 1: Preflight
+
+```
+python $SKILL/scripts/report.py preflight --workbook "work/PROSPECT Prospect Diagnosis.xlsx" --tier vip [--gbp gbp.json] --out work
+```
+
+Read `work/preflight.md`. On NOT READY, send **one** message listing each FAIL and exactly what is needed (the diagnosis spreadsheet, a matching `diagnosis.json`, the proposed plan level, a valid GBP file, or which track to show when no lens scored an issue), then stop. Mention each WARN in the reply. Done when it says READY.
+
+## Step 2: Build
+
+```
+python $SKILL/scripts/report.py build --workbook "work/PROSPECT Prospect Diagnosis.xlsx" --tier vip [--gbp gbp.json] \
+  --out "work/PROSPECT Site Health Report.html"
+```
+
+The build runs the same checks and refuses to write a page while any fails. Done when it prints "All checks passed". On "every task has a client label: FAIL", add the listed tasks to `task_labels.json` (title and one plain line) in a pull request; do not ship a page with raw task names.
+
+## Step 3: Look at it
+
+Open the page rendered (a headless browser screenshot at desktop and phone widths, or the published page) and check: the verdict card names the verdict the script printed; the scores add up (overall = average of the scored metrics); the roadmap shows only the verdict's track; nothing overlaps or is cut off. Read every finding once against the diagnosis Signals tab.
+
+## Step 4: Deliver
+
+Publish the HTML file as an artifact (a private page sales can share), or send the file when no artifact tool is available. Reply in a few lines: the verdict and why (the rule the script printed), the overall score, the tier shown, whether Google Maps was included, and anything overridden.
+
+## Updating the tracks
+
+The tracks come from the New Client Tracks Google Sheet. When it changes, update `references/tracks.csv` (columns Track, Task, Month, Starter, VIP, Signature, Notes; "-" or blank = not in that tier; Onboarding rows apply to every tier), add any new task to `task_labels.json`, raise the plugin version and open a pull request.

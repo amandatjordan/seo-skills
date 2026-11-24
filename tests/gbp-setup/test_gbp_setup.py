@@ -12,7 +12,7 @@ from pathlib import Path
 import pandas as pd
 from openpyxl import load_workbook
 
-SCRIPT = Path(__file__).resolve().parents[2] / 'plugins/mavan-seo/skills/gbp-setup/scripts/gbp_setup.py'
+SCRIPT = Path(__file__).resolve().parents[2] / 'plugins/seo/skills/gbp-setup/scripts/gbp_setup.py'
 
 
 def run(*args):

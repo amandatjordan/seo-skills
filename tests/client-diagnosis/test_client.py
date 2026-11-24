@@ -15,7 +15,7 @@ import pandas as pd
 from openpyxl import load_workbook
 
 ROOT = Path(__file__).resolve().parents[2]
-SKILLS = ROOT / 'plugins/mavan-seo/skills'
+SKILLS = ROOT / 'plugins/seo/skills'
 sys.path.insert(0, str(SKILLS / 'client-diagnosis/scripts'))
 import diagnose  # noqa: E402
 import gsc  # noqa: E402
@@ -48,11 +48,11 @@ def year_rows(zero_clicks_in_b=True, a_clicks=10, b_clicks=4):
     rows.append((pd.Timestamp('2026-11-06').date(), 'botox near me', f'https://{P}/botox/', 1, 10, 12.0))  # newest date
     rows.append((pd.Timestamp('2026-01-05').date(), 'lip filler', f'https://{P}/filler/', a_clicks, 100, 8.0))
     rows.append((pd.Timestamp('2026-08-05').date(), 'lip filler', f'https://{P}/filler/', b_clicks, 100, 8.0))
-    rows.append((pd.Timestamp('2026-01-06').date(), 'balance spa', f'https://{P}/', 7, 20, 1.0))
+    rows.append((pd.Timestamp('2026-01-06').date(), 'harmony spa', f'https://{P}/', 7, 20, 1.0))
     return rows
 
 
-def prep(rows, brand=('balance',), path=None):
+def prep(rows, brand=('harmony',), path=None):
     tmp = Path(tempfile.mkdtemp()) / 'gsc.csv'
     make_gsc(rows).to_csv(tmp, index=False)
     return gsc.load(str(tmp), None, P, list(brand))
@@ -110,17 +110,17 @@ class CappedExport(unittest.TestCase):
 
 class Brand(unittest.TestCase):
     def test_brand_is_whole_word_only(self):
-        rx = gsc.brand_re(['balance', 'balance aesthetic'])
-        self.assertTrue(rx.search('balance spa brandon'))
-        self.assertTrue(rx.search('balance  aesthetic'))
-        self.assertFalse(rx.search('counterbalance'))
-        self.assertFalse(rx.search('balanced diet'))
+        rx = gsc.brand_re(['harmony', 'harmony aesthetic'])
+        self.assertTrue(rx.search('harmony spa brandon'))
+        self.assertTrue(rx.search('harmony  aesthetic'))
+        self.assertFalse(rx.search('disharmony'))
+        self.assertFalse(rx.search('harmonyhall diet'))
 
     def test_brand_rows_leave_non_brand_figures(self):
         df, _ = prep(year_rows())
         a, b = gsc.split(df, gsc.periods(df))
         q = gsc.query_table(a, b)
-        self.assertNotIn('balance spa', set(q['query']))
+        self.assertNotIn('harmony spa', set(q['query']))
 
 
 class Drops(unittest.TestCase):
@@ -235,7 +235,7 @@ class EndToEnd(unittest.TestCase):
         write_csv(r / 'gap.csv', ['Keyword', 'Intents', 'Volume', 'Keyword Difficulty', 'CPC', 'Competition Density', P, C1, C2,
                                   f'{P} (pages)', f'{C1} (pages)', f'{C2} (pages)', 'Results'], gap)
         make_gsc(year_rows(zero_clicks_in_b=False)).to_csv(r / 'gsc.csv', index=False)
-        self.cfg = {'client': 'Example Spa', 'domain': P, 'brand_terms': ['balance'], 'gbp_business': 'Example Spa', 'manual_action': 'no',
+        self.cfg = {'client': 'Example Spa', 'domain': P, 'brand_terms': ['harmony'], 'gbp_business': 'Example Spa', 'manual_action': 'no',
                     'service_terms': ['botox', 'filler'],
                     'overview': {P: {'authority_score': 10, 'referring_domains': 100, 'referring_domains_12m_ago': 90},
                                  C1: {'authority_score': 12, 'referring_domains': 120, 'referring_domains_12m_ago': 100},

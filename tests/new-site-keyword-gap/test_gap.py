@@ -12,7 +12,7 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
-SCRIPT = Path(__file__).resolve().parents[2] / 'plugins/mavan-seo/skills/new-site-keyword-gap/scripts/gap.py'
+SCRIPT = Path(__file__).resolve().parents[2] / 'plugins/seo/skills/new-site-keyword-gap/scripts/gap.py'
 C1, C2, C3 = 'rival-one.com', 'rival-two.com', 'rival-three.com'
 GAP_HEAD = ['Keyword', 'Intents', 'Volume', 'Keyword Difficulty', 'CPC', 'Competition Density', C1, C2, C3,
             f'{C1} (pages)', f'{C2} (pages)', f'{C3} (pages)', 'Results']

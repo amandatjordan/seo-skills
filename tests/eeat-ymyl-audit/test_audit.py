@@ -15,7 +15,7 @@ from openpyxl import load_workbook
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import fixture  # noqa: E402
 
-SCRIPT = Path(__file__).resolve().parents[2] / "plugins/mavan-seo/skills/eeat-ymyl-audit/scripts/audit.py"
+SCRIPT = Path(__file__).resolve().parents[2] / "plugins/seo/skills/eeat-ymyl-audit/scripts/audit.py"
 SITE = fixture.SITE
 
 

@@ -12,7 +12,7 @@ from pathlib import Path
 import openpyxl
 
 ROOT = Path(__file__).resolve().parents[2]
-SK = ROOT / "plugins/mavan-seo/skills/information-architecture-audit/scripts"
+SK = ROOT / "plugins/seo/skills/information-architecture-audit/scripts"
 
 
 def run(script, *args):

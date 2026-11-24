@@ -13,7 +13,7 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
-SCRIPT = Path(__file__).resolve().parents[2] / 'plugins/mavan-seo/skills/prospect-diagnosis/scripts/diagnose.py'
+SCRIPT = Path(__file__).resolve().parents[2] / 'plugins/seo/skills/prospect-diagnosis/scripts/diagnose.py'
 P, C1, C2 = 'example-spa.com', 'rival-one.com', 'rival-two.com'
 CRAWL_HEAD = ['URL', 'Crawl Depth', 'HTTP Status Code', 'Content Type', 'Indexable Status', 'Title', 'H1', 'No. Content Words']
 RANK_HEAD = ['Keyword', 'Position', 'Previous position', 'Search Volume', 'Keyword Difficulty', 'CPC', 'URL', 'Traffic',
