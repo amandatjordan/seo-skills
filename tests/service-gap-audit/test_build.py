@@ -1,0 +1,206 @@
+"""service-gap-audit build.py on a small made-up site with non-standard URL paths.
+
+Run from the repo root:  python3 -m unittest discover -s tests/service-gap-audit -v
+"""
+import csv
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[2]
+SCRIPT = ROOT / "plugins/mavan-seo/skills/service-gap-audit/scripts/build.py"
+TAXONOMY = ROOT / "plugins/mavan-seo/skills/service-gap-audit/references/service-taxonomy.xlsx"
+SITE = "https://example-medspa.com"
+
+# Sitebulb-style export with no H2 columns. Paths deliberately avoid /services/ and /blog/.
+HEADER = ["URL", "HTTP Status Code", "Indexable Status", "Title", "Meta Description", "H1", "No. Content Words"]
+PAGES = [
+    # path, status, indexable, title, meta, h1, words, type, node, city
+    ("/", 200, "Indexable", "Example Med Spa | Tampa", "", "Med spa in Tampa", 400, "Utility", "", ""),
+    ("/treatments/botox-tampa", 200, "Canonicalized", "Botox in Tampa | Example", "", "Botox in Tampa", 1500, "Service", "Botox", "tampa"),
+    ("/treatments/botox-tampa/", 301, "", "", "", "", 0, None, None, None),
+    ("/treatments/microneedling-skinpen", 200, "Indexable", "SkinPen Microneedling | Example", "", "SkinPen", 900, "Service", "SkinPen", ""),
+    ("/treatments/fillers", 200, "Indexable", "Dermal Fillers | Example", "", "Dermal Fillers", 12, "Service", "Dermal Filler", ""),
+    ("/treatments/kysse", 200, "Indexable", "Restylane Kysse | Example", "", "Restylane Kysse", 700, "Service", "Restylane Kysse", ""),
+    ("/results/lip-filler-1", 200, "Indexable", "Lip filler results", "", "Lip filler", 6, "Gallery", "", ""),
+    ("/by-area/body", 200, "Indexable", "Body treatments | Example", "", "Cellulite and body", 300, "Concern", "", ""),
+    ("/treatments/emsella-chair", 200, "Indexable", "Emsella Chair | Example", "", "Emsella Chair", 650, "Service", "NEW: Emsella Chair > Sexual Wellness", ""),
+]
+
+
+def run(*args):
+    return subprocess.run([sys.executable, str(SCRIPT), *args], capture_output=True, text=True)
+
+
+class ServiceGapAudit(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        root = Path(cls.tmp.name)
+        cls.crawl = root / "crawl.csv"
+        with open(cls.crawl, "w", newline="") as fh:
+            w = csv.writer(fh)
+            w.writerow(HEADER)
+            for p in PAGES:
+                w.writerow([SITE + p[0], *p[1:7]])
+        work = root / "work"
+        cls.inspect = run("inspect", "--crawl", str(cls.crawl), "--cities", "Tampa", "--practice", "medspa", "--out", str(work))
+        pages = pd.read_csv(work / "pages.tsv", sep="\t", dtype=str, keep_default_na=False, quoting=3)
+        fix = {p[0]: p for p in PAGES if p[7]}
+        for i, r in pages.iterrows():  # the review step: set every type and node by hand
+            p = fix[r["path"]]
+            pages.loc[i, ["type", "node", "city"]] = [p[7], p[8], p[9]]
+        cls.pages = work / "pages.tsv"
+        pages.to_csv(cls.pages, sep="\t", index=False, quoting=3)
+        cls.out = root / "audit.xlsx"
+        cls.build = run("build", "--crawl", str(cls.crawl), "--pages", str(cls.pages), "--cities", "Tampa",
+                        "--practice", "medspa", "--domain", "example-medspa.com", "--out", str(cls.out))
+        cls.recs = pd.read_excel(cls.out, "Recommendations", header=1).fillna("")
+        cls.why = dict(zip(cls.recs["Service Page Recommended"], cls.recs["Why Recommended"]))
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def test_runs_and_passes_qa(self):
+        self.assertEqual(self.inspect.returncode, 0, self.inspect.stderr)
+        self.assertEqual(self.build.returncode, 0, self.build.stderr)
+        self.assertNotIn("FAIL", self.build.stdout)
+        self.assertIn("No H2 columns", self.inspect.stdout + str(pd.read_excel(self.out, "Read Me", header=None).values))
+
+    def test_canonical_loop_without_canonical_column(self):
+        self.assertEqual(self.why["Botox (Neurotoxin)"], "Existing page, not indexable")
+
+    def test_thin_indexable_page_is_not_recommended_for_being_thin(self):
+        self.assertNotIn("Existing page, thin content", set(self.why.values()))
+        self.assertNotIn("Existing page, light content", set(self.why.values()))
+
+    def test_existing_pages_only_when_not_indexable(self):
+        urls = self.recs[self.recs["Current URL"] != ""]
+        self.assertEqual(set(urls["Why Recommended"]), {"Existing page, not indexable"})
+        self.assertNotIn("Dermal Filler", self.why)  # live, indexable, thin: not recommended
+
+    def test_next_steps_column_follows_current_url(self):
+        cols = list(self.recs.columns)
+        self.assertEqual(cols[cols.index("Current URL") + 1], "Next Steps")
+        self.assertTrue((self.recs["Next Steps"] == "").all())
+
+    def test_gallery_proves_lip_filler(self):
+        self.assertEqual(self.why["Lip Filler (Dermal Filler)"], "Offered (before & after photos), no page")
+
+    def test_concern_page_proves_cellulite(self):
+        self.assertEqual(self.why["Cellulite Treatment"], "Offered (named on a concern page), no page")
+
+    def test_brand_only_names_existing_page(self):
+        row = self.recs[self.recs["Service Page Recommended"] == "Microneedling"].iloc[0]
+        self.assertEqual(row["Why Recommended"], "Only has a brand/product page")
+        self.assertIn("SkinPen: /treatments/microneedling-skinpen", row["Existing Brand / Sub-Service Page(s)"])
+
+    def test_new_device_counts_for_its_service_and_is_listed(self):
+        self.assertIn("Emsella Chair", self.build.stdout)
+        self.assertNotIn("Confirm with client (no sign it is offered)", set(self.why.values()))
+
+    def test_no_other_market_keywords(self):
+        kws = ", ".join(self.recs["Relevant Keywords"]).lower()
+        self.assertNotIn("miami", kws)
+
+    def test_relevant_keywords_capped_at_20(self):
+        for cell in self.recs["Relevant Keywords"]:
+            self.assertLessEqual(len([k for k in str(cell).split(", ") if k]), 20)
+
+    def test_relevant_pages_for_concern_named_service(self):
+        row = self.recs[self.recs["Service Page Recommended"] == "Cellulite Treatment"].iloc[0]
+        self.assertTrue(str(row["Relevant Pages"]).strip())
+
+    def test_main_practice_noted_in_read_me(self):
+        out = Path(self.tmp.name) / "audit_dental.xlsx"
+        r = run("build", "--crawl", str(self.crawl), "--pages", str(self.pages), "--cities", "Tampa",
+                "--practice", "medspa", "--main-practice", "LASIK", "--domain", "example-medspa.com", "--out", str(out))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rm = pd.read_excel(out, "Read Me", header=None).fillna("")
+        row = " ".join(rm[rm[0] == "Practice type"].iloc[0].astype(str))
+        self.assertIn("Main practice: LASIK", row)
+        self.assertIn("not audited", row)
+        default = pd.read_excel(self.out, "Read Me", header=None).fillna("")
+        self.assertNotIn("Main practice", " ".join(default[default[0] == "Practice type"].iloc[0].astype(str)))
+
+    def _module(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("build", SCRIPT)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def test_dental_rows_load_only_when_dental_is_a_practice_type(self):
+        mod = self._module()
+        raw = pd.read_excel(TAXONOMY, "Taxonomy", dtype=str).fillna("")
+        self.assertTrue((raw["Practice Type"] == "Dental").any())
+        self.assertFalse(any(n["practice"].lower() == "dental" for n in mod.Taxonomy(TAXONOMY).nodes))
+        tax = mod.Taxonomy(TAXONOMY, include_dental=True)
+        self.assertTrue(any(n["practice"].lower() == "dental" for n in tax.nodes))
+        self.assertEqual(mod.Taxonomy(TAXONOMY).classify_keyword("porcelain veneers cost")[0], "Unmapped")
+
+    def test_practice_types_combine(self):
+        mod = self._module()
+        self.assertEqual(mod.parse_practice("both"), ["medspa", "surgical"])
+        self.assertEqual(mod.parse_practice("dental,medspa"), ["medspa", "dental"])
+        self.assertEqual(mod.parse_practice("medspa, surgical, dental"), ["medspa", "surgical", "dental"])
+        with self.assertRaises(SystemExit):
+            mod.parse_practice("lasik")
+        self.assertTrue(mod.fits_practice("Both", ["dental", "surgical"]))
+        self.assertFalse(mod.fits_practice("Both", ["dental"]))
+        self.assertFalse(mod.fits_practice("Dental", ["medspa", "surgical"]))
+        self.assertTrue(mod.fits_practice("Dental", ["medspa", "dental"]))
+        self.assertFalse(mod.fits_practice("Medspa", ["surgical"]))
+
+    def test_main_practice_dental_is_rejected(self):
+        r = run("build", "--crawl", str(self.crawl), "--pages", str(self.pages), "--practice", "medspa",
+                "--main-practice", "Dental", "--out", str(Path(self.tmp.name) / "x.xlsx"))
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("--practice dental", r.stdout + r.stderr)
+
+    def test_dental_audit(self):
+        root = Path(self.tmp.name) / "dental"
+        root.mkdir()
+        crawl = root / "crawl.csv"
+        site = "https://smile-dental.com"
+        rows = [("/", 200, "Indexable", "Smile Dental | Tampa", "", "Dentist in Tampa", 400),
+                ("/dental-implants", 200, "Indexable", "Dental Implants | Smile", "", "Dental Implants", 900),
+                ("/before-after/veneers", 200, "Indexable", "Veneers results", "", "Veneers", 6),
+                ("/clear-aligners", 200, "Not indexable", "Invisalign | Smile", "", "Clear Aligners", 800)]
+        with open(crawl, "w", newline="") as fh:
+            w = csv.writer(fh)
+            w.writerow(HEADER)
+            for p in rows:
+                w.writerow([site + p[0], *p[1:]])
+        r = run("inspect", "--crawl", str(crawl), "--cities", "Tampa", "--practice", "dental", "--out", str(root / "work"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        out = root / "audit.xlsx"
+        r = run("build", "--crawl", str(crawl), "--pages", str(root / "work/pages.tsv"), "--cities", "Tampa",
+                "--practice", "dental", "--domain", "smile-dental.com", "--out", str(out))
+        self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
+        self.assertNotIn("FAIL", r.stdout)
+        recs = pd.read_excel(out, "Recommendations", header=1).fillna("")
+        why = dict(zip(recs["Service Page Recommended"], recs["Why Recommended"]))
+        self.assertIn("Dental Veneers", why)                         # a gallery names it: offered, no page
+        self.assertIn("before & after", why["Dental Veneers"])
+        self.assertTrue(any("Confirm with client" in w for w in why.values()))   # no volume does not hide dental sub-services
+        self.assertNotIn("Botox", " ".join(why))                      # med spa services are not audited for a dental practice
+        rm = pd.read_excel(out, "Read Me", header=None).fillna("")
+        row = " ".join(rm[rm[0] == "Practice type"].iloc[0].astype(str))
+        self.assertIn("Dental", row)
+        self.assertIn("High priority tier", row)
+
+    def test_taxonomy_is_not_accepted_as_gsc(self):
+        r = run("build", "--crawl", str(self.crawl), "--pages", str(self.pages), "--practice", "medspa",
+                "--gsc", str(TAXONOMY), "--out", str(Path(self.tmp.name) / "x.xlsx"))
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("not Search Console data", r.stdout + r.stderr)
+
+
+if __name__ == "__main__":
+    unittest.main()
