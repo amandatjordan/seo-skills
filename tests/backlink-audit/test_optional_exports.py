@@ -35,7 +35,7 @@ class OptionalExportsAttached(unittest.TestCase):
         (work / 'decisions.json').write_text(json.dumps({
             'takeaways': ['a legacy key: ignored now that there is no Rollup tab'],
             'broken': {'https://example.com/x/': {'action': 'drop'}},  # legacy key: ignored
-            'opportunities': {'frankfurtmedspa.com': {'type': 'Industry publication / blog'},
+            'opportunities': {'franklin-medspa-example.com': {'type': 'Industry publication / blog'},
                               'onecomp-highauth.com': {'type': 'Industry publication / blog'}}}))
         cls.out = root / 'audit.xlsx'
         cls.build = base.TwoFileSemrushAudit.run_py('build.py', '--work', str(work), '--out', str(cls.out))

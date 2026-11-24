@@ -16,7 +16,7 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
-SKILL = Path(__file__).resolve().parents[2] / 'plugins/mavan-seo/skills/backlink-audit'
+SKILL = Path(__file__).resolve().parents[2] / 'plugins/seo/skills/backlink-audit'
 CLIENT = 'example-medspa.com'
 COMPS = ['comp-one.com', 'comp-two.com', 'comp-three.com']
 HOME = f'https://{CLIENT}/'
@@ -57,7 +57,7 @@ def gap_rows():
         cells = [1 if i < n else 0 for i in range(3)]
         return [dom, au, 0] + cells + [n]
     rows = [r('tampabaylocalnews.com', 55, 3), r('floridachamber.org', 48, 2), r('bestmedspas-listing.com', 33, 2),
-            r('frankfurtmedspa.com', 28, 2),             # contains "rank": must not be treated as junk
+            r('franklin-medspa-example.com', 28, 2),             # contains "rank": must not be treated as junk
             r('smallbloglocal.com', 15, 1),              # 1 competitor, low authority: dropped unless decided
             r('onecomp-highauth.com', 62, 1)]
     for dom in ['cheap-backlinks.shop', 'seochecker.site', 'dapa-tools.online', 'rankbooster.xyz', 'bigdeals.store']:
@@ -91,7 +91,7 @@ class TwoFileSemrushAudit(unittest.TestCase):
             'lost': {'lostsite.com': {'priority': 'High', 'do_this': 'Ask them to restore the link.'}},
             'opportunities': {
                 # review step: every kept row of type Other needs a specific action
-                'frankfurtmedspa.com': {'type': 'Industry publication / blog'},
+                'franklin-medspa-example.com': {'type': 'Industry publication / blog'},
                 'onecomp-highauth.com': {'type': 'Industry publication / blog'},
                 # added by hand: one competitor and low authority, so prep.py dropped it
                 'smallbloglocal.com': {'type': 'Local news / media', 'do_this': 'Pitch a local story.',
@@ -183,7 +183,7 @@ class TwoFileSemrushAudit(unittest.TestCase):
         for junk in ['cheap-backlinks.shop', 'seochecker.site', 'dapa-tools.online', 'rankbooster.xyz',
                      'bigdeals.store']:
             self.assertNotIn(junk, opp)
-        for good in ['tampabaylocalnews.com', 'floridachamber.org', 'frankfurtmedspa.com']:
+        for good in ['tampabaylocalnews.com', 'floridachamber.org', 'franklin-medspa-example.com']:
             self.assertIn(good, opp)
 
     def test_decisions_can_add_a_one_competitor_domain(self):

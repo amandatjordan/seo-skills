@@ -13,7 +13,7 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
-SKILL = Path(__file__).resolve().parents[2] / 'plugins/mavan-seo/skills/prospect-audit/scripts'
+SKILL = Path(__file__).resolve().parents[2] / 'plugins/seo/skills/prospect-audit/scripts'
 PROSPECT, C1, C2 = 'example-spa.com', 'rival-one.com', 'rival-two.com'
 
 

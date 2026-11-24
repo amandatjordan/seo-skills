@@ -10,7 +10,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-SCRIPTS = Path(__file__).resolve().parents[2] / 'plugins/mavan-seo/skills/prospect-sales-report/scripts'
+SCRIPTS = Path(__file__).resolve().parents[2] / 'plugins/seo/skills/prospect-sales-report/scripts'
 sys.path.insert(0, str(SCRIPTS))
 import report  # noqa: E402
 

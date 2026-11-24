@@ -13,7 +13,7 @@ from pathlib import Path
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "plugins/mavan-seo/skills/site-diagnosis/scripts/triage.py"
+SCRIPT = ROOT / "plugins/seo/skills/site-diagnosis/scripts/triage.py"
 SITE = "https://www.example-dental.com"
 HEAD = ["Page", "Query", "Clicks", "Impressions", "CTR", "Position"]
 

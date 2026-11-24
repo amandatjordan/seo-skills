@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import fixture  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
-S = ROOT / 'plugins/mavan-seo/skills/migration-sheet/scripts'
+S = ROOT / 'plugins/seo/skills/migration-sheet/scripts'
 sys.path.insert(0, str(S))
 import redirects  # noqa: E402
 

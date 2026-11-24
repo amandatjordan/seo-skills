@@ -12,7 +12,7 @@ from pathlib import Path
 import pandas as pd
 from openpyxl import Workbook, load_workbook
 
-SKILL = Path(__file__).resolve().parents[2] / 'plugins/mavan-seo/skills/new-site-content-roadmap'
+SKILL = Path(__file__).resolve().parents[2] / 'plugins/seo/skills/new-site-content-roadmap'
 SCRIPT = SKILL / 'scripts/roadmap.py'
 REAL_BLOG = SKILL / 'references/blog-taxonomy.xlsx'
 

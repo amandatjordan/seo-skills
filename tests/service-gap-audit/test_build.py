@@ -12,8 +12,8 @@ from pathlib import Path
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "plugins/mavan-seo/skills/service-gap-audit/scripts/build.py"
-TAXONOMY = ROOT / "plugins/mavan-seo/skills/service-gap-audit/references/service-taxonomy.xlsx"
+SCRIPT = ROOT / "plugins/seo/skills/service-gap-audit/scripts/build.py"
+TAXONOMY = ROOT / "plugins/seo/skills/service-gap-audit/references/service-taxonomy.xlsx"
 SITE = "https://example-medspa.com"
 
 # Sitebulb-style export with no H2 columns. Paths deliberately avoid /services/ and /blog/.
